@@ -1,0 +1,7 @@
+.vs
+.env
+obj
+bin
+.scannerwork
+.sonarqube
+Tests/TestResults

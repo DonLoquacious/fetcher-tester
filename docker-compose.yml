@@ -1,0 +1,9 @@
+services:
+  fetcher-tester:
+    build: .
+    env_file:
+        .env
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
