@@ -87,7 +87,15 @@ Dictionary<string, (Func<Task<bool>>, RequestDelegate)> testLookup = new()
 };
 
 // map primary "run tests" endpoint, for the shell script to hit
-app.Map("/run-tests", async (HttpContext context) =>
+app.Map("/run-tests", RunAllTests);
+
+// map all fetch endpoints to host, for testing
+foreach (var kvp in testLookup)
+    app.Map($"/{kvp.Key}", kvp.Value.Item2);
+
+app.Run();
+
+ async Task RunAllTests(HttpContext context)
 {
     var success = true;
     RequestContextLog(context);
@@ -122,11 +130,7 @@ app.Map("/run-tests", async (HttpContext context) =>
         Console.WriteLine($"All tests have completed successfully.");
     else
         Console.WriteLine($"Tests have completed- some errors have occurred.");
-});
-
-// map all fetch endpoints to host, for testing
-foreach (var kvp in testLookup)
-    app.Map($"/{kvp.Key}", kvp.Value.Item2);
+}
 
 async Task<bool> RunHostnameTest()
 {
@@ -308,5 +312,3 @@ async Task CreateOKResponse(HttpContext context)
     var defaultResponse = "<response>OK</response>";
     await context.Response.WriteAsync(string.IsNullOrWhiteSpace(testResponse) ? defaultResponse : testResponse);
 }
-
-app.Run();
