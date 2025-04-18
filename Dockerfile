@@ -14,6 +14,8 @@ EXPOSE 80
 EXPOSE 443
 EXPOSE 8080
 
-COPY --from=build-env /root/.dotnet/corefx/cryptography/x509stores/my/* /root/.dotnet/corefx/cryptography/x509stores/my/
+ARG DOMAIN
+
+COPY ./certs/${DOMAIN}/certificate.pfx /app/certificate.pfx
 
 ENTRYPOINT ["dotnet", "fetcher-tester.dll"]

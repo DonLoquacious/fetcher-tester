@@ -1,6 +1,9 @@
 services:
   fetcher-tester:
-    build: .
+    build:
+      context: .
+      args:
+        DOMAIN: ${test_hostname}
     env_file:
         .env
     ports:

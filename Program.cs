@@ -3,6 +3,16 @@ using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Check the working directory and list its files
+Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
+foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
+{
+    Console.WriteLine($"File: {file}");
+}
+
+var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2("certificate.pfx");
+Console.WriteLine($"Loaded certificate: {cert.Subject}");
+
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.ListenAnyIP(80, listenOptions =>
@@ -17,7 +27,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
     serverOptions.ListenAnyIP(443, listenOptions =>
     {
-        listenOptions.UseHttps(httpsOptions =>
+        listenOptions.UseHttps("certificate.pfx", null, httpsOptions =>
         {
             httpsOptions.HandshakeTimeout = TimeSpan.FromSeconds(5);
             httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls13 | System.Security.Authentication.SslProtocols.Tls12;

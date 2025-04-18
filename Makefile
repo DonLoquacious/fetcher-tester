@@ -9,3 +9,6 @@ build:
 
 test:
 	./run-tests.sh
+
+certs:
+	./generate-certs.sh

@@ -1,6 +1,9 @@
 .vs
 .env
+.env.development
+.env.production
 obj
+certs
 bin
 .scannerwork
 .sonarqube
