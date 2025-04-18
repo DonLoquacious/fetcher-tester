@@ -79,7 +79,9 @@ if (string.IsNullOrEmpty(testToNumber) || string.IsNullOrEmpty(testFromNumber))
 
 const string fetchHostnameEndpointName = "fetch-hostname-test";
 const string fetchPort8080EndpointName = "fetch-port-8080-test";
+const string fetchPort8080IPEndpointName = "fetch-port-8080-ip-test";
 const string fetchPort8080SSLEndpointName = "fetch-port-8080-ssl-test";
+const string fetchPort8080IPSSLEndpointName = "fetch-port-8080-ip-ssl-test";
 const string fetchIPEndpointName = "fetch-ip-test";
 const string fetchSSLEndpointName = "fetch-ssl-test";
 const string fetchIPSSLEndpointName = "fetch-ip-ssl-test";
@@ -89,7 +91,9 @@ Dictionary<string, (Func<Task<bool>>, RequestDelegate)> testLookup = new()
 {
     { fetchHostnameEndpointName, new (RunHostnameTest, FetchBasicTest) },
     { fetchPort8080EndpointName, new (RunPort8080Test, FetchBasicTest) },
+    { fetchPort8080IPEndpointName, new (RunPort8080IPTest, FetchBasicTest) },
     { fetchPort8080SSLEndpointName, new (RunPort8080SSLTest, FetchBasicTest) },
+    { fetchPort8080IPSSLEndpointName, new (RunPort8080IPSSLTest, FetchBasicTest) },
     { fetchIPEndpointName,  new (RunIPTest, FetchBasicTest) },
     { fetchSSLEndpointName,  new (RunSSLTest, FetchBasicTest) },
     { fetchIPSSLEndpointName,  new (RunIPSSLTest, FetchBasicTest) },
@@ -127,7 +131,11 @@ app.Run();
         success = false;
     else if (!await RunPort8080Test())
         success = false;
+    else if (!await RunPort8080IPTest())
+        success = false;
     else if (!await RunPort8080SSLTest())
+        success = false;
+    else if (!await RunPort8080IPSSLTest())
         success = false;
     else if (!await RunSSLTest())
         success = false;
@@ -166,6 +174,18 @@ async Task<bool> RunPort8080Test()
     return success;
 }
 
+async Task<bool> RunPort8080IPTest()
+{
+    var success = true;
+    if (!await ExecuteFetch(fetchPort8080IPEndpointName, useIP: true, ssl: false, portNumber: 8080))
+    {
+        success = false;
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080IPEndpointName} failed.");
+    }
+
+    return success;
+}
+
 async Task<bool> RunPort8080SSLTest()
 {
     var success = true;
@@ -173,6 +193,18 @@ async Task<bool> RunPort8080SSLTest()
     {
         success = false;
         Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080SSLEndpointName} failed.");
+    }
+
+    return success;
+}
+
+async Task<bool> RunPort8080IPSSLTest()
+{
+    var success = true;
+    if (!await ExecuteFetch(fetchPort8080IPSSLEndpointName, useIP: true, ssl: true, portNumber: 8080))
+    {
+        success = false;
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080IPSSLEndpointName} failed.");
     }
 
     return success;

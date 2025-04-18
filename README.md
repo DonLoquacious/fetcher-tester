@@ -11,6 +11,10 @@ This document describes the configuration options for the CXML Fetcher Tester ap
 
 ## Configuration
 
+Put configuration into a local `.env` file for testing in development, without the `fetcher_tester_` prefix- can also be provided as flags in the app startup, again without the prefix.
+
+Use the prefix if providing ENVs from the environment itself.
+
 ### ENV: fetcher_tester_test_hostname
 
 - Flag: test_hostname
@@ -82,14 +86,25 @@ This document describes the configuration options for the CXML Fetcher Tester ap
 - Description: Runs a specific test, if set- all tests will run otherwise.
 - Default: N/A
 
+## Build and Run
+
+Just need to run the following three commands:
+- `make build`
+  - if wanting to test SSH, copy your pfx cert to `./certs/{domain}/certificate.pfx`
+	- alternatively, just run `make certs`, and it'll handle it
+- `make up`
+- `make test`
+
 ## Individual Tests
 
 A list of tests that can be set with `fetcher_tester_test_to_run`:
 
 - fetch-hostname-test
 - fetch-ip-test
-- fetch-port-8080-test
-- fetch-port-8080-ssl-test
 - fetch-ssl-test
 - fetch-ip-ssl-test
+- fetch-port-8080-test
+- fetch-port-8080-ip-test
+- fetch-port-8080-ssl-test
+- fetch-port-8080-ip-ssl-test
 - fetch-delayed-test
