@@ -17,5 +17,6 @@ EXPOSE 8080
 ARG DOMAIN
 
 COPY ./certs/${DOMAIN}/certificate.pfx /app/certificate.pfx
+COPY ./media /app/media
 
 ENTRYPOINT ["dotnet", "fetcher-tester.dll"]

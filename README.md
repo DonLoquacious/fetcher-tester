@@ -99,12 +99,12 @@ Just need to run the following three commands:
 
 A list of tests that can be set with `fetcher_tester_test_to_run`:
 
-- fetch-hostname-test
-- fetch-ip-test
-- fetch-ssl-test
-- fetch-ip-ssl-test
-- fetch-port-8080-test
-- fetch-port-8080-ip-test
-- fetch-port-8080-ssl-test
-- fetch-port-8080-ip-ssl-test
-- fetch-delayed-test
+- hostname-test
+- ip-test
+- ssl-test
+- ip-ssl-test
+- port-8080-test
+- port-8080-ip-test
+- port-8080-ssl-test
+- port-8080-ip-ssl-test
+- delayed-test

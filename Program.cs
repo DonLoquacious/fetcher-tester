@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Net.Http.Headers;
+using System.Reflection.Emit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +37,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
         });
         Console.WriteLine($"Configured HTTPS endpoint at {listenOptions.EndPoint}");
     });
-
 });
 
 builder.WebHost.UseUrls("http://*:80", "http://*:8080", "https://*:443");
@@ -77,47 +79,53 @@ if (string.IsNullOrEmpty(testToNumber) || string.IsNullOrEmpty(testFromNumber))
     return;
 }
 
-const string fetchHostnameEndpointName = "fetch-hostname-test";
-const string fetchPort8080EndpointName = "fetch-port-8080-test";
-const string fetchPort8080IPEndpointName = "fetch-port-8080-ip-test";
-const string fetchPort8080SSLEndpointName = "fetch-port-8080-ssl-test";
-const string fetchPort8080IPSSLEndpointName = "fetch-port-8080-ip-ssl-test";
-const string fetchIPEndpointName = "fetch-ip-test";
-const string fetchSSLEndpointName = "fetch-ssl-test";
-const string fetchIPSSLEndpointName = "fetch-ip-ssl-test";
-const string fetchDelayedEndpointName = "fetch-delay-test";
+const string HostnameTestLabel = "hostname";
+const string Port8080TestLabel = "port-8080";
+const string Port8080IPTestLabel = "port-8080-ip";
+const string Port8080SSLTestLabel = "port-8080-ssl";
+const string Port8080IPSSLTestLabel = "port-8080-ip-ssl";
+const string IPTestLabel = "ip";
+const string SSLTestLabel = "ssl";
+const string IPSSLTestLabel = "ip-ssl";
+const string DelayedTestLabel = "delay";
 
-Dictionary<string, (Func<Task<bool>>, RequestDelegate)> testLookup = new()
+Dictionary<string, (Func<HttpContext, Task>, RequestDelegate)> testLookup = new()
 {
-    { fetchHostnameEndpointName, new (RunHostnameTest, FetchBasicTest) },
-    { fetchPort8080EndpointName, new (RunPort8080Test, FetchBasicTest) },
-    { fetchPort8080IPEndpointName, new (RunPort8080IPTest, FetchBasicTest) },
-    { fetchPort8080SSLEndpointName, new (RunPort8080SSLTest, FetchBasicTest) },
-    { fetchPort8080IPSSLEndpointName, new (RunPort8080IPSSLTest, FetchBasicTest) },
-    { fetchIPEndpointName,  new (RunIPTest, FetchBasicTest) },
-    { fetchSSLEndpointName,  new (RunSSLTest, FetchBasicTest) },
-    { fetchIPSSLEndpointName,  new (RunIPSSLTest, FetchBasicTest) },
-    { fetchDelayedEndpointName,  new (RunDelayedTest, FetchDelayedTest) }
+    { HostnameTestLabel, new (HostnameTest, BasicEndpoint) },
+    { Port8080TestLabel, new (Port8080Test, BasicEndpoint) },
+    { Port8080IPTestLabel, new (Port8080IPTest, BasicEndpoint) },
+    { Port8080SSLTestLabel, new (Port8080SSLTest, BasicEndpoint) },
+    { Port8080IPSSLTestLabel, new (Port8080IPSSLTest, BasicEndpoint) },
+    { IPTestLabel,  new (IPTest, BasicEndpoint) },
+    { SSLTestLabel,  new (SSLTest, BasicEndpoint) },
+    { IPSSLTestLabel,  new (IPSSLTest, BasicEndpoint) },
+    { DelayedTestLabel,  new (DelayedTest, DelayedEndpoint) }
 };
 
 // map primary "run tests" endpoint, for the shell script to hit
 app.Map("/run-tests", RunAllTests);
 
+// map all individual tests, so they can be executed directly
+foreach (var kvp in testLookup)
+    app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", () => kvp.Value.Item1);
+
 // map all fetch endpoints to host, for testing
 foreach (var kvp in testLookup)
-    app.Map($"/{kvp.Key}", kvp.Value.Item2);
+    app.Map($"/{kvp.Key.TestEndpointFromLabel()}", kvp.Value.Item2);
 
 app.Run();
 
  async Task RunAllTests(HttpContext context)
 {
-    var success = true;
     RequestContextLog(context);
 
-    if (!string.IsNullOrEmpty(specific_test) && testLookup.TryGetValue(specific_test, out var kvp))
+    if (!string.IsNullOrEmpty(specific_test) && testLookup.TryGetValue(specific_test, out var specific_kvp))
     {
-        if (kvp.Item1 != null && await kvp.Item1.Invoke())
+        if (specific_kvp.Item1 != null)
+        {
+            await specific_kvp.Item1.Invoke(context);
             Console.WriteLine($"All tests have completed successfully.");
+        }
         else
             Console.WriteLine($"Tests have completed- some errors have occurred.");
 
@@ -125,140 +133,118 @@ app.Run();
     }
 
     // run all tests one by one, until a failure occurs
-    if (!await RunHostnameTest())
-        success = false;
-    else if (!await RunIPTest())
-        success = false;
-    else if (!await RunPort8080Test())
-        success = false;
-    else if (!await RunPort8080IPTest())
-        success = false;
-    else if (!await RunPort8080SSLTest())
-        success = false;
-    else if (!await RunPort8080IPSSLTest())
-        success = false;
-    else if (!await RunSSLTest())
-        success = false;
-    else if (!await RunIPSSLTest())
-        success = false;
-    else if (!await RunDelayedTest())
-        success = false;
-
-    if (success)
-        Console.WriteLine($"All tests have completed successfully.");
-    else
-        Console.WriteLine($"Tests have completed- some errors have occurred.");
-}
-
-async Task<bool> RunHostnameTest()
-{
-    var success = true;
-    if (!await ExecuteFetch(fetchHostnameEndpointName, useIP: false, ssl: false, portNumber: 80))
+    foreach (var kvp in testLookup)
     {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchHostnameEndpointName} failed.");
+        await kvp.Value.Item1.Invoke(context);
+        if (!context.ValidateTestResults(kvp.Value.Item1.Method.Name))
+            return;
     }
-
-    return success;
 }
 
-async Task<bool> RunPort8080Test()
+async Task HostnameTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchPort8080EndpointName, useIP: false, ssl: false, portNumber: 8080))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080EndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(HostnameTestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {HostnameTestLabel.TestEndpointFromLabel()} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunPort8080IPTest()
+async Task Port8080Test(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchPort8080IPEndpointName, useIP: true, ssl: false, portNumber: 8080))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080IPEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080TestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 8080))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080TestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunPort8080SSLTest()
+async Task Port8080IPTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchPort8080SSLEndpointName, useIP: false, ssl: true, portNumber: 8080))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080SSLEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080IPTestLabel.TestEndpointFromLabel(), useIP: true, ssl: false, portNumber: 8080))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080IPTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunPort8080IPSSLTest()
+async Task Port8080SSLTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchPort8080IPSSLEndpointName, useIP: true, ssl: true, portNumber: 8080))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchPort8080IPSSLEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080SSLTestLabel.TestEndpointFromLabel(), useIP: false, ssl: true, portNumber: 8080))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080SSLTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunIPTest()
+async Task Port8080IPSSLTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchIPEndpointName, useIP: true, ssl: false, portNumber: 80))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchIPEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080IPSSLTestLabel.TestEndpointFromLabel(), useIP: true, ssl: true, portNumber: 8080))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080IPSSLTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunSSLTest()
+async Task IPTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchSSLEndpointName, useIP: false, ssl: true, portNumber: 443))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchSSLEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(IPTestLabel.TestEndpointFromLabel(), useIP: true, ssl: false, portNumber: 80))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {IPTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunIPSSLTest()
+async Task SSLTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchIPSSLEndpointName, useIP: true, ssl: true, portNumber: 443))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchIPSSLEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(SSLTestLabel.TestEndpointFromLabel(), useIP: false, ssl: true, portNumber: 443))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {SSLTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task<bool> RunDelayedTest()
+async Task IPSSLTest(HttpContext context)
 {
-    var success = true;
-    if (!await ExecuteFetch(fetchDelayedEndpointName, useIP: false, ssl: false, portNumber: 80))
-    {
-        success = false;
-        Console.WriteLine($"Error: Executing REST API to trigger fetch for {fetchDelayedEndpointName} failed.");
-    }
+    context.Response.StatusCode = 200;
 
-    return success;
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(IPSSLTestLabel.TestEndpointFromLabel(), useIP: true, ssl: true, portNumber: 443))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {IPSSLTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
 }
 
-async Task FetchBasicTest(HttpContext context)
+async Task DelayedTest(HttpContext context)
+{
+    context.Response.StatusCode = 200;
+
+    if (!await RequestToRestAPI_CreateNewCallWithTestParameters(DelayedTestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80))
+    {
+        Console.WriteLine($"Error: Executing REST API to trigger fetch for {DelayedTestLabel} failed.");
+        context.Response.StatusCode = 500;
+    }
+}
+
+/// <summary>
+/// The bost basic of HTTP endpoints.
+/// Logs all context details, and then returns 200/OK right away.
+/// </summary>
+async Task BasicEndpoint(HttpContext context)
 {
     RequestContextLog(context);
     await CreateOKResponse(context);
@@ -266,7 +252,11 @@ async Task FetchBasicTest(HttpContext context)
     return;
 }
 
-async Task FetchDelayedTest(HttpContext context)
+/// <summary>
+/// A delayed HTTP endpoint.
+/// Will wait a configurable amount of time before returning 200/OK.
+/// </summary>
+async Task DelayedEndpoint(HttpContext context)
 {
     RequestContextLog(context);
 
@@ -285,7 +275,16 @@ void RequestContextLog(HttpContext context)
         Console.WriteLine($"Request Header: {header.Key}: {header.Value}");
 }
 
-async Task<bool> ExecuteFetch(string testName, bool useIP, bool ssl = false, int portNumber = 80)
+/// <summary>
+/// Makes a request to a SignalWire REST API to create a new call.
+/// The new call auth/numbers are provided by configuration (required).
+/// All tests use the same numbers for simplicity.
+/// If the number provided in "to" is a SignalWire number, that number will be "executed" as part of this process.
+/// This can be ignored / just don't point the number to anything important. It isn't what is being tested, but is required.
+/// 
+/// Returning false indicates the request itself failed- this isn't a part of the test, and should be debugged and fixed.
+/// </summary>
+async Task<bool> RequestToRestAPI_CreateNewCallWithTestParameters(string testName, bool useIP, bool ssl = false, int portNumber = 80)
 {
     var fetchUrl = $"{(ssl ? "https" : "http")}://{(useIP ? testIp : testHostname)}:{portNumber}/{testName}";
     var requestUrl = $"https://{(string.IsNullOrEmpty(spaceID) ? "dev.swire.io" : spaceID)}/api/laml/2010-04-01/Accounts/{projectID}/Calls";
@@ -344,6 +343,10 @@ async Task<bool> ExecuteFetch(string testName, bool useIP, bool ssl = false, int
     return false;
 }
 
+/// <summary>
+/// Creates an OK response in the context object.
+/// Will include an XML response payload, which is configurable.
+/// </summary>
 async Task CreateOKResponse(HttpContext context)
 {
     context.Response.ContentType = "application/xml";
@@ -353,4 +356,27 @@ async Task CreateOKResponse(HttpContext context)
 
     var defaultResponse = "<response>OK</response>";
     await context.Response.WriteAsync(string.IsNullOrWhiteSpace(testResponse) ? defaultResponse : testResponse);
+}
+
+public static class ExtensionMethods
+{
+    public static bool ValidateTestResults(this HttpContext context, string testName)
+    {
+        if (context.Response.StatusCode == 200)
+        {
+            Console.WriteLine($"Test {testName} has completed successfully.");
+            return true;
+        }
+        else
+        {
+            Console.WriteLine($"Test {testName} completed, but some errors have occurred.");
+            return false;
+        }
+    }
+
+    public static string TestNameFromLabel(this string label)
+        => label + "-test";
+
+    public static string TestEndpointFromLabel(this string label)
+        => label + "-endpoint";
 }

@@ -7,8 +7,14 @@ up:
 build:
 	docker compose -p $(PROJECT_NAME) -f $(COMPOSE_FILE) build
 
-test:
-	./run-tests.sh
-
 certs:
 	./generate-certs.sh
+
+test:
+	@if [ -z "$(name)" ]; then \
+		echo "Running all tests..."; \
+		./run-tests.sh; \
+	else \
+		echo "Running test: $(name)"; \
+		./run-tests.sh $(name); \
+	fi
