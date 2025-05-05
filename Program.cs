@@ -107,7 +107,7 @@ app.Map("/run-tests", RunAllTests);
 
 // map all individual tests, so they can be executed directly
 foreach (var kvp in testLookup)
-    app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", () => kvp.Value.Item1);
+    app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", kvp.Value.Item1);
 
 // map all fetch endpoints to host, for testing
 foreach (var kvp in testLookup)
