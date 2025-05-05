@@ -89,7 +89,7 @@ const string SSLTestLabel = "ssl";
 const string IPSSLTestLabel = "ip-ssl";
 const string DelayedTestLabel = "delay";
 
-Dictionary<string, (Func<HttpContext, Task>, RequestDelegate)> testLookup = new()
+Dictionary<string, (RequestDelegate, RequestDelegate)> testLookup = new()
 {
     { HostnameTestLabel, new (HostnameTest, BasicEndpoint) },
     { Port8080TestLabel, new (Port8080Test, BasicEndpoint) },
