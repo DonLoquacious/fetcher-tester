@@ -42,10 +42,12 @@ builder.Configuration
     .AddEnvironmentVariables(prefix: "fetcher_tester_")
     .AddCommandLine(args);
 
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
 var app = builder.Build();
 var specific_test = builder.Configuration["test_to_run"];
 
-Dictionary<string, (RequestDelegate, RequestDelegate)>? testLookup = null;
+Dictionary<string, (RequestDelegate?, RequestDelegate)>? testLookup = null;
 
 // map primary "run tests" endpoint, for the shell script to hit
 app.Map("/run-tests", RunAllTests);
@@ -53,16 +55,28 @@ app.Map("/run-tests", RunAllTests);
 var actionTests = new ActionTests(builder.Configuration);
 actionTests.ValidationConfiguration();
 
+var playbackTests = new PlayTests(builder.Configuration);
+playbackTests.ValidationConfiguration();
+
 testLookup = actionTests.GenerateTestLookup().ToDictionary();
-//testLookup = testLookup.Concat(otherTests.GenerateTestLookup()).ToDictionary();
+testLookup = testLookup.Concat(playbackTests.GenerateTestLookup()).ToDictionary();
 
 // map all individual tests, so they can be executed directly
 foreach (var kvp in testLookup)
-    app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", kvp.Value.Item1);
+{
+    if (kvp.Value.Item1 != null)
+    {
+        Console.WriteLine($"Adding test endpoint for: {kvp.Key.TestNameFromLabel()}");
+        app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", kvp.Value.Item1);
+    }
+}
 
-// map all fetch endpoints to host, for testing
+// map all endpoints needed for testing
 foreach (var kvp in testLookup)
+{
+    Console.WriteLine($"Adding endpoint for: {kvp.Key.TestEndpointFromLabel()}");
     app.Map($"/{kvp.Key.TestEndpointFromLabel()}", kvp.Value.Item2);
+}
 
 app.Run();
 
@@ -76,22 +90,24 @@ app.Run();
         return;
     }
 
-    if (!string.IsNullOrEmpty(specific_test) && testLookup.TryGetValue(specific_test, out var specific_kvp))
+    if (!string.IsNullOrEmpty(specific_test))
     {
-        if (specific_kvp.Item1 != null)
+        if (!testLookup.TryGetValue(specific_test, out var specific_kvp) || specific_kvp.Item1 == null)
         {
-            await specific_kvp.Item1.Invoke(context);
-            Console.WriteLine($"All tests have completed successfully.");
+            Console.WriteLine($"Error: Could not locate specific test {specific_test} to run.");
+            return;
         }
-        else
-            Console.WriteLine($"Tests have completed- some errors have occurred.");
 
-        return;
+        await specific_kvp.Item1.Invoke(context);
+        Console.WriteLine($"Test {specific_test} has completed successfully.");
     }
 
     // run all tests one by one, until a failure occurs
     foreach (var kvp in testLookup)
     {
+        if (kvp.Value.Item1 == null)
+            continue;
+
         await kvp.Value.Item1.Invoke(context);
         if (!context.ValidateTestResults(kvp.Value.Item1.Method.Name))
             return;
