@@ -53,8 +53,9 @@ public class PlayTests
     public Dictionary<string, (RequestDelegate?, RequestDelegate)> GenerateTestLookup()
     {
         return new() {
-            { AviTestLabel, new(AviTest, BasicEndpoint) },
+            { AviTestLabel, new(AviTest, AviTestEndpoint) },
             { Mp3TestLabel, new(Mp3Test, Mp3TestEndpoint) },
+            { "delayed-mp3", new(null, DelayedMp3TestEndpoint) },
             { "status_callback", new (null, StatusCallbackEndpoint) },
             { $"media/{AviTestLabel}", new (null, AviFilehost) },
             { $"media/{PdfTestLabel}", new (null, PdfFilehost) },
@@ -65,7 +66,8 @@ public class PlayTests
             { $"media/{JpgTestLabel}", new (null, JpgFilehost) },
             { $"media/{PngTestLabel}", new (null, PngFilehost) },
             { $"media/{OggTestLabel}", new (null, OggFilehost) },
-            { $"media/{MovTestLabel}", new (null, MovFilehost) }
+            { $"media/{MovTestLabel}", new (null, MovFilehost) },
+            { $"media/delayed-mp3", new (null, DelayedMp3Filehost)}
         };
     }
 
@@ -144,17 +146,33 @@ public class PlayTests
         }
     }
 
-    // all endpoints that that the tests will hit automatically as they're being run (filehosts, etc)
-    async Task BasicEndpoint(HttpContext context)
+    async Task AviTestEndpoint(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreatePlayMediaFileResponse(TestHostname, AviTestLabel.TestEndpointFromLabel(), null);
+    }
+
+    async Task DelayedMp3TestEndpoint(HttpContext context)
+    {
+        context.RequestContextLog();
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        await context.CreatePlayMediaFileResponse(TestHostname, Mp3TestLabel.TestEndpointFromLabel(), null);
     }
 
     async Task Mp3TestEndpoint(HttpContext context)
     {
         context.RequestContextLog();
         await context.CreatePlayMediaFileResponse(TestHostname, Mp3TestLabel.TestEndpointFromLabel(), null);
+    }
+
+    async Task DelayedMp3Filehost(HttpContext context)
+    {
+        context.RequestContextLog();
+        context.Response.StatusCode = 200;
+        context.Response.ContentType = "audio/mpeg3";
+
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        await context.Response.SendFileAsync("media/" + Mp3TestFilename);
     }
 
     async Task Mp3Filehost(HttpContext context)

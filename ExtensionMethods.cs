@@ -29,6 +29,8 @@ public static class ExtensionMethods
         foreach (var header in context.Request.Headers)
             Console.WriteLine($"Request Header: {header.Key}: {header.Value}");
 
+        Console.WriteLine($"Payload: {context.Request.Body.ReadAsStringAsync().Result}");
+
         // HR
         Console.WriteLine("---");
     }

@@ -58,7 +58,8 @@ actionTests.ValidationConfiguration();
 var playbackTests = new PlayTests(builder.Configuration);
 playbackTests.ValidationConfiguration();
 
-testLookup = actionTests.GenerateTestLookup().ToDictionary();
+testLookup = new Dictionary<string, (RequestDelegate?, RequestDelegate)>() { { "basic", new(null, BasicEndpoint) } };
+testLookup = testLookup.Concat(actionTests.GenerateTestLookup()).ToDictionary();
 testLookup = testLookup.Concat(playbackTests.GenerateTestLookup()).ToDictionary();
 
 // map all individual tests, so they can be executed directly
@@ -112,4 +113,10 @@ app.Run();
         if (!context.ValidateTestResults(kvp.Value.Item1.Method.Name))
             return;
     }
+}
+
+async Task BasicEndpoint(HttpContext context)
+{
+    context.RequestContextLog();
+    context.Response.StatusCode = 200;
 }
