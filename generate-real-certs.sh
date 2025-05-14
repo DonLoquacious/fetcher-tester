@@ -53,13 +53,14 @@ if [ -z "$PFX_PASSWORD" ]; then
   PFX_PASSWORD=""
 fi
 
-openssl pkcs12 -export -out "$PFX_FILE" -inkey "$CERT_DIR/privkey.pem" -in "$CERT_DIR/fullchain.pem" -password pass:$PFX_PASSWORD
+openssl pkcs12 -export -out "$PFX_FILE" -inkey "$CERT_DIR/privkey.pem" -in "$CERT_DIR/cert.pem" -certfile "$CERT_DIR/chain.pem" -password pass:$PFX_PASSWORD
 
 if [ $? -ne 0 ]; then
     echo "Failed to convert certificates to PFX format."
     exit 1
 fi
 
+chmod 644 $PFX_FILE
 echo "Certificate stored at $CERT_DIR/fullchain.pem"
 echo "Private key stored at $CERT_DIR/privkey.pem"
 echo "PFX file stored at $PFX_FILE"
