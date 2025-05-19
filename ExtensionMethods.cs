@@ -57,6 +57,36 @@ public static class ExtensionMethods
         await context.Response.WriteAsync(responseXML);
     }
 
+    public static async Task CreateTwilioPlayMediaFileResponse(this HttpContext context)
+    {
+        context.Response.ContentType = "application/xml";
+        context.Response.StatusCode = 200;
+
+        var responseXML = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Response>
+<Play>
+http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3
+</Play>
+<Play>
+http://com.twilio.sounds.music.s3.amazonaws.com/BusyStrings.mp3
+</Play>
+<Play>
+http://com.twilio.sounds.music.s3.amazonaws.com/oldDog_-_endless_goodbye_%28instr.%29.mp3
+</Play>
+<Play>
+http://com.twilio.sounds.music.s3.amazonaws.com/Mellotroniac_-_Flight_Of_Young_Hearts_Flute.mp3
+</Play>
+<Play>
+http://com.twilio.sounds.music.s3.amazonaws.com/MARKOVICHAMP-Borghestral.mp3
+</Play>
+<Redirect method=""GET"">
+http://com.twilio.sounds.music.s3.amazonaws.com/index.xml
+</Redirect>
+</Response>
+";
+        await context.Response.WriteAsync(responseXML);
+    }
+
     public static async Task CreateServerErrorResponse(this HttpContext context, string? customResponse = null)
     {
         await Task.CompletedTask;

@@ -55,6 +55,7 @@ public class PlayTests
         return new() {
             { AviTestLabel, new(AviTest, AviTestEndpoint) },
             { Mp3TestLabel, new(Mp3Test, Mp3TestEndpoint) },
+            { "twilio", new(null, TwilioTestEndpoint) },
             { "delayed-mp3", new(null, DelayedMp3TestEndpoint) },
             { "status_callback", new (null, StatusCallbackEndpoint) },
             { $"media/{AviTestLabel}", new (null, AviFilehost) },
@@ -109,7 +110,7 @@ public class PlayTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        var callbackStatusUrl = $"http://{TestHostname}/status_callback-endpoint";
+        var callbackStatusUrl = $"https://{TestHostname}/status_callback-endpoint";
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(AviTestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80, callbackStatusUrl))
         {
@@ -131,7 +132,7 @@ public class PlayTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        var callbackStatusUrl = $"http://{TestHostname}/status_callback-endpoint";
+        var callbackStatusUrl = $"https://{TestHostname}/status_callback-endpoint";
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Mp3TestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80, callbackStatusUrl))
         {
@@ -155,14 +156,20 @@ public class PlayTests
     async Task DelayedMp3TestEndpoint(HttpContext context)
     {
         context.RequestContextLog();
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        await context.CreatePlayMediaFileResponse(TestHostname, Mp3TestLabel.TestEndpointFromLabel(), null);
+        await Task.Delay(TimeSpan.FromSeconds(4));
+        await context.CreatePlayMediaFileResponse(TestHostname, "media/mp3-endpoint", null);
     }
 
     async Task Mp3TestEndpoint(HttpContext context)
     {
         context.RequestContextLog();
         await context.CreatePlayMediaFileResponse(TestHostname, Mp3TestLabel.TestEndpointFromLabel(), null);
+    }
+
+    async Task TwilioTestEndpoint(HttpContext context)
+    {
+        context.RequestContextLog();
+        await context.CreateTwilioPlayMediaFileResponse();
     }
 
     async Task DelayedMp3Filehost(HttpContext context)

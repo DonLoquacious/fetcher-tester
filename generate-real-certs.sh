@@ -29,7 +29,7 @@ function check_certificate_expiry {
   local cert_file="$1"
   local current_date=$(date +%s)
   local expire_date=$(date -d "$(openssl x509 -enddate -noout -in "$cert_file" | cut -d= -f2)" +%s)
-  
+
   if [ "$expire_date" -gt "$current_date" ]; then
     return 0
   else
