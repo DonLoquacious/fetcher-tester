@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using Xunit;
 
 namespace fetcher_tester;
 
@@ -32,17 +33,21 @@ public class ActionTests
     private readonly string? TestToNumber;
     private readonly string? TestFromNumber;
 
-    public ActionTests(ConfigurationManager configuration)
+    public ActionTests()
     {
-        TestDelayMS = configuration.GetValue("test_delay_ms", 4000);
-        TestToNumber = configuration["test_to_number"];
-        TestFromNumber = configuration["test_from_number"];
-        ProjectID = configuration["test_project_id"];
-        SpaceID = configuration["test_space_id"];
-        ApiToken = configuration["test_api_token"];
-        TestHostname = configuration["test_hostname"];
-        TestIp = configuration["test_ip"];
-        TestResponse = configuration["test_response"];
+        TestDelayMS = AppConfig.GetConfigValue("test_delay_ms", 4000);
+        TestToNumber = AppConfig.GetConfigValue("test_to_number");
+        TestFromNumber = AppConfig.GetConfigValue("test_from_number");
+        ProjectID = AppConfig.GetConfigValue("test_project_id");
+        SpaceID = AppConfig.GetConfigValue("test_space_id");
+        ApiToken = AppConfig.GetConfigValue("test_api_token");
+        TestHostname = AppConfig.GetConfigValue("test_hostname");
+        TestIp = AppConfig.GetConfigValue("test_ip");
+        TestResponse = AppConfig.GetConfigValue("test_response");
+
+        Assert.NotNull(ProjectID);
+        Assert.NotNull(SpaceID);
+        Assert.NotNull(ApiToken);
     }
 
     public Dictionary<string, (RequestDelegate?, RequestDelegate)> GenerateTestLookup()

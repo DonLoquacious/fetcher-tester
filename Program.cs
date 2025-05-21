@@ -1,4 +1,6 @@
 using fetcher_tester;
+using System.Security.Cryptography.X509Certificates;
+using Xunit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +11,7 @@ foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
     Console.WriteLine($"File: {file}");
 }
 
-var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2("certificate.pfx");
+var cert = X509CertificateLoader.LoadPkcs12FromFile("certificate.pfx", null, X509KeyStorageFlags.DefaultKeySet);
 Console.WriteLine($"Loaded certificate: {cert.Subject}");
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -45,44 +47,69 @@ builder.Configuration
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 var app = builder.Build();
+Assert.NotNull(app);
+
+// set config provider for all to use- easy for unit tests
+AppConfig.SetConfiguration(builder.Configuration);
+
 var specific_test = builder.Configuration["test_to_run"];
+var relayContext = builder.Configuration["relay_context"];
 
 Dictionary<string, (RequestDelegate?, RequestDelegate)>? testLookup = null;
+MapEndpoints(app);
 
-// map primary "run tests" endpoint, for the shell script to hit
-app.Map("/run-tests", RunAllTests);
+Assert.NotNull(testLookup);
 
-var actionTests = new ActionTests(builder.Configuration);
-actionTests.ValidationConfiguration();
-
-var playbackTests = new PlayTests(builder.Configuration);
-playbackTests.ValidationConfiguration();
-
-testLookup = new Dictionary<string, (RequestDelegate?, RequestDelegate)>() { { "basic", new(null, BasicEndpoint) } };
-testLookup = testLookup.Concat(actionTests.GenerateTestLookup()).ToDictionary();
-testLookup = testLookup.Concat(playbackTests.GenerateTestLookup()).ToDictionary();
-
-// map all individual tests, so they can be executed directly
-foreach (var kvp in testLookup)
+// create a relay listener, if a context has been provided
+if (!string.IsNullOrWhiteSpace(relayContext))
 {
-    if (kvp.Value.Item1 != null)
-    {
-        Console.WriteLine($"Adding test endpoint for: {kvp.Key.TestNameFromLabel()}");
-        app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", kvp.Value.Item1);
-    }
-}
+    Console.WriteLine($"Creating new relay consumer for context {relayContext}.");
+    var consumer = new RelayConsumer();
 
-// map all endpoints needed for testing
-foreach (var kvp in testLookup)
-{
-    Console.WriteLine($"Adding endpoint for: {kvp.Key.TestEndpointFromLabel()}");
-    app.Map($"/{kvp.Key.TestEndpointFromLabel()}", kvp.Value.Item2);
+    if (consumer != null)
+        consumer.Run();
+    else
+        Console.WriteLine($"Error: Relay consumer creation for context {relayContext} has failed.");
 }
 
 app.Run();
 
- async Task RunAllTests(HttpContext context)
+void MapEndpoints(WebApplication app)
 {
+    // map primary "run tests" endpoint, for the shell script to hit
+    app.Map("/run-tests", RunAllTests);
+
+    var actionTests = new ActionTests();
+    actionTests.ValidationConfiguration();
+
+    var playbackTests = new PlayTests();
+    playbackTests.ValidationConfiguration();
+
+    testLookup = new Dictionary<string, (RequestDelegate?, RequestDelegate)>() { { "basic", new(null, BasicEndpoint) } };
+    testLookup = testLookup.Concat(actionTests.GenerateTestLookup()).ToDictionary();
+    testLookup = testLookup.Concat(playbackTests.GenerateTestLookup()).ToDictionary();
+
+    // map all individual tests, so they can be executed directly
+    foreach (var kvp in testLookup)
+    {
+        if (kvp.Value.Item1 != null)
+        {
+            Console.WriteLine($"Adding test endpoint for: {kvp.Key.TestNameFromLabel()}");
+            app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", kvp.Value.Item1);
+        }
+    }
+
+    // map all endpoints needed for testing
+    foreach (var kvp in testLookup)
+    {
+        Console.WriteLine($"Adding endpoint for: {kvp.Key.TestEndpointFromLabel()}");
+        app.Map($"/{kvp.Key.TestEndpointFromLabel()}", kvp.Value.Item2);
+    }
+}
+
+async Task RunAllTests(HttpContext context)
+{
+    Assert.NotNull(context);
     context.RequestContextLog();
 
     if (testLookup == null)
@@ -117,6 +144,9 @@ app.Run();
 
 async Task BasicEndpoint(HttpContext context)
 {
+    Assert.NotNull(context);
+    await Task.CompletedTask;
+
     context.RequestContextLog();
     context.Response.StatusCode = 200;
 }

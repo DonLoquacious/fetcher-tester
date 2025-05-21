@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="SignalWire-DotNet" Version="2.4.6" />
+    <PackageReference Include="xunit.assert" Version="2.9.3" />
   </ItemGroup>
 
 </Project>

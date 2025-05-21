@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using Xunit;
 
 namespace fetcher_tester;
 
@@ -39,15 +40,19 @@ public class PlayTests
     private readonly string? TestToNumber;
     private readonly string? TestFromNumber;
 
-    public PlayTests(ConfigurationManager configuration)
+    public PlayTests()
     {
-        TestToNumber = configuration["test_to_number"];
-        TestFromNumber = configuration["test_from_number"];
-        ProjectID = configuration["test_project_id"];
-        SpaceID = configuration["test_space_id"];
-        ApiToken = configuration["test_api_token"];
-        TestHostname = configuration["test_hostname"];
-        TestIp = configuration["test_ip"];
+        TestToNumber = AppConfig.GetConfigValue("test_to_number");
+        TestFromNumber = AppConfig.GetConfigValue("test_from_number");
+        ProjectID = AppConfig.GetConfigValue("test_project_id");
+        SpaceID = AppConfig.GetConfigValue("test_space_id");
+        ApiToken = AppConfig.GetConfigValue("test_api_token");
+        TestHostname = AppConfig.GetConfigValue("test_hostname");
+        TestIp = AppConfig.GetConfigValue("test_ip");
+
+        Assert.NotNull(ProjectID);
+        Assert.NotNull(SpaceID);
+        Assert.NotNull(ApiToken);
     }
 
     public Dictionary<string, (RequestDelegate?, RequestDelegate)> GenerateTestLookup()
@@ -127,6 +132,7 @@ public class PlayTests
 
     async Task Mp3Test(HttpContext context)
     {
+        Assert.NotNull(context);
         StatusCallbackReceivedEvent.Reset();
 
         context.RequestContextLog();
@@ -149,12 +155,14 @@ public class PlayTests
 
     async Task AviTestEndpoint(HttpContext context)
     {
+        Assert.NotNull(TestHostname);
         context.RequestContextLog();
         await context.CreatePlayMediaFileResponse(TestHostname, AviTestLabel.TestEndpointFromLabel(), null);
     }
 
     async Task DelayedMp3TestEndpoint(HttpContext context)
     {
+        Assert.NotNull(TestHostname);
         context.RequestContextLog();
         await Task.Delay(TimeSpan.FromSeconds(4));
         await context.CreatePlayMediaFileResponse(TestHostname, "media/mp3-endpoint", null);
@@ -162,6 +170,7 @@ public class PlayTests
 
     async Task Mp3TestEndpoint(HttpContext context)
     {
+        Assert.NotNull(TestHostname);
         context.RequestContextLog();
         await context.CreatePlayMediaFileResponse(TestHostname, Mp3TestLabel.TestEndpointFromLabel(), null);
     }

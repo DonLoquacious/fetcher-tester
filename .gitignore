@@ -1,8 +1,6 @@
 .vs
 .env
-.env.development
-.env.production
-scripts
+.env.*
 obj
 certs
 bin
