@@ -12,6 +12,7 @@ public class RelayConsumer : Consumer
         if (string.IsNullOrWhiteSpace(relayContext))
             throw new NullReferenceException("relay_context must be provided in configuration");
 
+        Host = AppConfig.GetConfigValue("relay_host");
         Contexts = new List<string>() { relayContext };
         Project = AppConfig.GetConfigValue("test_project_id");
         Token = AppConfig.GetConfigValue("test_api_token");
@@ -19,6 +20,7 @@ public class RelayConsumer : Consumer
 
     protected override void OnIncomingCall(Call call)
     {
+        Console.WriteLine("New call received on relay context! Answering now.");
         AnswerResult resultAnswer = call.Answer();
 
         if (!resultAnswer.Successful)
