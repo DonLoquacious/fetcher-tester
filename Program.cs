@@ -5,7 +5,6 @@ using Xunit;
 var builder = WebApplication.CreateBuilder(args);
 Assert.NotNull(builder);
 
-// Check the working directory and list its files
 Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
 foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
 {
@@ -50,7 +49,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     }
 });
 
-builder.WebHost.UseUrls(listenUrls.ToArray());
+builder.WebHost.UseUrls([.. listenUrls]);
 
 DotNetEnv.Env.Load();
 builder.Configuration
@@ -62,11 +61,10 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning);
 var app = builder.Build();
 Assert.NotNull(app);
 
-// set config provider for all to use- easy for unit tests
 AppConfig.SetConfiguration(builder.Configuration);
 
-var specific_test = builder.Configuration["test_to_run"];
-var relayContext = builder.Configuration["relay_context"];
+string? specific_test = builder.Configuration["test_to_run"];
+string? relayContext = builder.Configuration["relay_context"];
 
 Dictionary<string, (RequestDelegate?, RequestDelegate)>? testLookup = null;
 MapEndpoints(app);
@@ -74,7 +72,6 @@ MapEndpoints(app);
 Assert.NotNull(testLookup);
 CancellationTokenSource endingToken = new CancellationTokenSource();
 
-// create a relay listener, if a context has been provided
 if (!string.IsNullOrWhiteSpace(relayContext))
 {
     Console.WriteLine($"Creating new relay consumer for context '{relayContext}'.");
@@ -96,7 +93,6 @@ endingToken.Cancel();
 
 void MapEndpoints(WebApplication app)
 {
-    // map primary "run tests" endpoint, for the shell script to hit
     app.Map("/run-tests", RunAllTests);
 
     var actionTests = new ActionTests();
@@ -109,7 +105,6 @@ void MapEndpoints(WebApplication app)
     testLookup = testLookup.Concat(actionTests.GenerateTestLookup()).ToDictionary();
     testLookup = testLookup.Concat(playbackTests.GenerateTestLookup()).ToDictionary();
 
-    // map all individual tests, so they can be executed directly
     foreach (var kvp in testLookup)
     {
         if (kvp.Value.Item1 != null)
@@ -119,7 +114,6 @@ void MapEndpoints(WebApplication app)
         }
     }
 
-    // map all endpoints needed for testing
     foreach (var kvp in testLookup)
     {
         Console.WriteLine($"Adding endpoint for: {kvp.Key.TestEndpointFromLabel()}");
@@ -150,7 +144,6 @@ async Task RunAllTests(HttpContext context)
         Console.WriteLine($"Test {specific_test} has completed successfully.");
     }
 
-    // run all tests one by one, until a failure occurs
     foreach (var kvp in testLookup)
     {
         if (kvp.Value.Item1 == null)
