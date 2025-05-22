@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using Xunit;
 
 var builder = WebApplication.CreateBuilder(args);
+Assert.NotNull(builder);
 
 // Check the working directory and list its files
 Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
@@ -11,33 +12,45 @@ foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
     Console.WriteLine($"File: {file}");
 }
 
-var cert = X509CertificateLoader.LoadPkcs12FromFile("certificate.pfx", null, X509KeyStorageFlags.DefaultKeySet);
-Console.WriteLine($"Loaded certificate: {cert.Subject}");
+var httpsEnabled = false;
+if (File.Exists("certificate.pfx"))
+{
+    httpsEnabled = true;
+    var cert = X509CertificateLoader.LoadPkcs12FromFile("certificate.pfx", null, X509KeyStorageFlags.DefaultKeySet);
+    Console.WriteLine($"Loaded certificate: {cert.Subject}");
+}
 
+var listenUrls = new List<string>();
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.ListenAnyIP(80, listenOptions =>
     {
         Console.WriteLine($"Configured HTTP endpoint at {listenOptions.EndPoint}");
     });
+    listenUrls.Add("http://*:80");
 
     serverOptions.ListenAnyIP(8080, listenOptions =>
     {
         Console.WriteLine($"Configured HTTP endpoint at {listenOptions.EndPoint}");
     });
+    listenUrls.Add("http://*:8080");
 
-    serverOptions.ListenAnyIP(443, listenOptions =>
+    if (httpsEnabled)
     {
-        listenOptions.UseHttps("certificate.pfx", null, httpsOptions =>
+        serverOptions.ListenAnyIP(443, listenOptions =>
         {
-            httpsOptions.HandshakeTimeout = TimeSpan.FromSeconds(5);
-            httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls13 | System.Security.Authentication.SslProtocols.Tls12;
+            listenOptions.UseHttps("certificate.pfx", null, httpsOptions =>
+            {
+                httpsOptions.HandshakeTimeout = TimeSpan.FromSeconds(5);
+                httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls13 | System.Security.Authentication.SslProtocols.Tls12;
+            });
+            Console.WriteLine($"Configured HTTPS endpoint at {listenOptions.EndPoint}");
         });
-        Console.WriteLine($"Configured HTTPS endpoint at {listenOptions.EndPoint}");
-    });
+        listenUrls.Add("https://*:443");
+    }
 });
 
-builder.WebHost.UseUrls("http://*:80", "http://*:8080", "https://*:443");
+builder.WebHost.UseUrls(listenUrls.ToArray());
 
 DotNetEnv.Env.Load();
 builder.Configuration
@@ -59,20 +72,27 @@ Dictionary<string, (RequestDelegate?, RequestDelegate)>? testLookup = null;
 MapEndpoints(app);
 
 Assert.NotNull(testLookup);
+CancellationTokenSource endingToken = new CancellationTokenSource();
 
 // create a relay listener, if a context has been provided
 if (!string.IsNullOrWhiteSpace(relayContext))
 {
-    Console.WriteLine($"Creating new relay consumer for context {relayContext}.");
+    Console.WriteLine($"Creating new relay consumer for context '{relayContext}'.");
     var consumer = new RelayConsumer();
 
     if (consumer != null)
-        consumer.Run();
+    {
+        Console.WriteLine($"Consumer created successfully- running.");
+        await Task.Run(consumer.Run, endingToken.Token);
+    }
     else
-        Console.WriteLine($"Error: Relay consumer creation for context {relayContext} has failed.");
+        Console.WriteLine($"Error: Relay consumer creation for context '{relayContext}' has failed.");
 }
 
+Console.WriteLine($"Running webhost and hosting application.");
 app.Run();
+
+endingToken.Cancel();
 
 void MapEndpoints(WebApplication app)
 {

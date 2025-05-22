@@ -115,7 +115,7 @@ public class PlayTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        var callbackStatusUrl = $"https://{TestHostname}/status_callback-endpoint";
+        var callbackStatusUrl = $"http://{TestHostname}/status_callback-endpoint";
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(AviTestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80, callbackStatusUrl))
         {
@@ -138,7 +138,7 @@ public class PlayTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        var callbackStatusUrl = $"https://{TestHostname}/status_callback-endpoint";
+        var callbackStatusUrl = $"http://{TestHostname}/status_callback-endpoint";
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Mp3TestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80, callbackStatusUrl))
         {
