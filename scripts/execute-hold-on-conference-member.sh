@@ -24,11 +24,14 @@ if [ -z "$AUTH_TOKEN" ]; then
     exit 1
 fi
 
+SERVICE_HOST=$(echo -n "$SERVICE_HOST" | sed 's/\r//g')
+ACCOUNT_SID=$(echo -n "$ACCOUNT_SID" | sed 's/\r//g')
+AUTH_TOKEN=$(echo -n "$AUTH_TOKEN" | sed 's/\r//g')
+
 CONFERENCE_ID="$1"
 CALL_SID="$2"
 
-# Perform the curl command
 curl -X POST "https://$SERVICE_HOST/2010-04-01/Accounts/$ACCOUNT_SID/Conferences/$CONFERENCE_ID/Participants/$CALL_SID.json" \
+-u "$ACCOUNT_SID:$AUTH_TOKEN" \
 --data-urlencode "Hold=true" \
---data-urlencode "HoldUrl=https://beyond-immersion.com/delayed-mp3-endpoint" \
--u $ACCOUNT_SID:$AUTH_TOKEN
+--data-urlencode "HoldUrl=https://beyond-immersion.com/delayed-mp3-endpoint"
