@@ -284,6 +284,7 @@ public class PlayTests
     // Status callback endpoint hit for all tests
     async Task StatusCallbackEndpoint(HttpContext context)
     {
+        context.RequestContextLog();
         StatusCallbackReceivedEvent.Set();
 
         await context.CreateOKResponse();
