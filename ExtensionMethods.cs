@@ -35,7 +35,7 @@ public static class ExtensionMethods
         Console.WriteLine("---");
     }
 
-    public static async Task CreateOKResponse(this HttpContext context, string? customResponse = null)
+    public static async Task CreateOKcXMLResponse(this HttpContext context, string? customResponse = null)
     {
         context.Response.ContentType = "application/xml";
         context.Response.StatusCode = 200;
@@ -44,7 +44,7 @@ public static class ExtensionMethods
         await context.Response.WriteAsync(string.IsNullOrWhiteSpace(customResponse) ? defaultResponse : customResponse);
     }
 
-    public static async Task CreatePlayMediaFileResponse(this HttpContext context, string hostname, string filename, string? extension)
+    public static async Task CreatePlayMediaFilecXMLResponse(this HttpContext context, string hostname, string filename, string? extension)
     {
         context.Response.ContentType = "application/xml";
         context.Response.StatusCode = 200;
@@ -57,7 +57,7 @@ public static class ExtensionMethods
         await context.Response.WriteAsync(responseXML);
     }
 
-    public static async Task CreateTwilioPlayMediaFileResponse(this HttpContext context)
+    public static async Task CreateTwilioPlayMediaFilecXMLResponse(this HttpContext context)
     {
         context.Response.ContentType = "application/xml";
         context.Response.StatusCode = 200;

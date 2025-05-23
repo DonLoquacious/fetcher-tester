@@ -1,4 +1,6 @@
 using fetcher_tester;
+using fetcher_tester.endpoints;
+using fetcher_tester.relay;
 using System.Security.Cryptography.X509Certificates;
 using Xunit;
 
@@ -80,7 +82,7 @@ if (!string.IsNullOrWhiteSpace(relayContext))
     if (consumer != null)
     {
         Console.WriteLine($"Consumer created successfully- running.");
-        await Task.Run(consumer.Run, endingToken.Token);
+        _ = Task.Run(consumer.Run, endingToken.Token);
     }
     else
         Console.WriteLine($"Error: Relay consumer creation for context '{relayContext}' has failed.");
@@ -95,13 +97,17 @@ void MapEndpoints(WebApplication app)
 {
     app.Map("/run-tests", RunAllTests);
 
+    Dictionary<string, RequestDelegate>? endpointLookup = null;
+
     var fetchTests = new cXMLFetchTests();
     fetchTests.ValidateConfiguration();
     testLookup = fetchTests.GetTests();
+    endpointLookup = fetchTests.GetEndpoints();
 
     var playbackTests = new cXMLPlaybackTests();
     playbackTests.ValidateConfiguration();
     testLookup = testLookup.Concat(playbackTests.GetTests()).ToDictionary();
+    endpointLookup = endpointLookup.Concat(playbackTests.GetEndpoints()).ToDictionary();
 
     foreach (var kvp in testLookup)
     {
@@ -109,11 +115,14 @@ void MapEndpoints(WebApplication app)
         app.Map($"/tests/{kvp.Key}", kvp.Value);
     }
 
-    Dictionary<string, RequestDelegate>? endpointLookup = null;
     var generalEndpoints = new GeneralEndpoints();
-    endpointLookup = generalEndpoints.GetEndpoints();
-    endpointLookup = endpointLookup.Concat(fetchTests.GetEndpoints()).ToDictionary();
-    endpointLookup = endpointLookup.Concat(playbackTests.GetEndpoints()).ToDictionary();
+    endpointLookup = endpointLookup.Concat(generalEndpoints.GetEndpoints()).ToDictionary();
+
+    var cxmlEndpoints = new cXMLEndpoints();
+    endpointLookup = endpointLookup.Concat(cxmlEndpoints.GetEndpoints()).ToDictionary();
+
+    var mediaEndpoints = new MediaEndpoints();
+    endpointLookup = endpointLookup.Concat(mediaEndpoints.GetEndpoints()).ToDictionary();
 
     foreach (var kvp in endpointLookup)
     {

@@ -2,7 +2,7 @@
 using SignalWire.Relay.Calling;
 using Xunit;
 
-namespace fetcher_tester;
+namespace fetcher_tester.relay;
 
 public class RelayConsumer : Consumer
 {

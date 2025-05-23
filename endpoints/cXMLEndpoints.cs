@@ -1,16 +1,24 @@
-﻿namespace fetcher_tester;
+﻿namespace fetcher_tester.endpoints;
 
 /// <summary>
-/// General HTTP/S endpoints.
+/// General cXML endpoints.
 /// </summary>
-public class GeneralEndpoints
+public class cXMLEndpoints
 {
     public static AutoResetEvent StatusCallbackReceivedEvent = new(false);
+
+    public const string OkLabel = "ok";
+    public const string DelayedLabel = "delayed";
+    public const string CustomResponseLabel = "custom-response";
+    public const string InnerStatusCallbackLabel = "inner-status-callback";
+    public const string StatusCallbackLabel = "status-callback";
+
+    public const string LabelPrefix = "cxml";
 
     private readonly string? TestResponse;
     private readonly int TestDelayMS;
 
-    public GeneralEndpoints()
+    public cXMLEndpoints()
     {
         TestDelayMS = AppConfig.GetConfigValue("test_delay_ms", 4000);
         TestResponse = AppConfig.GetConfigValue("test_response", @"<response>OK</response>");
@@ -19,30 +27,37 @@ public class GeneralEndpoints
     public Dictionary<string, RequestDelegate> GetEndpoints()
     {
         return new() {
-            { "basic", BasicEndpoint },
-            { "custom", CustomEndpoint },
-            { "delayed", DelayedEndpoint },
-            { "inner_status_callback", StatusCallbackEndpoint },
-            { "status_callback", StatusCallbackEndpoint }
+            { GenerateTestPath(OkLabel), OkEndpoint },
+            { GenerateTestPath(DelayedLabel), DelayedEndpoint },
+            { GenerateTestPath(CustomResponseLabel), CustomEndpoint },
+            { GenerateTestPath(InnerStatusCallbackLabel), StatusCallbackEndpoint },
+            { GenerateTestPath(StatusCallbackLabel), StatusCallbackEndpoint }
         };
+    }
+
+    private static string GenerateTestPath(string label)
+    {
+        return $"{LabelPrefix}/{label}";
     }
 
     /// <summary>
     /// The most basic of HTTP endpoints.
     /// Logs all context details, and then returns 200/OK right away.
     /// </summary>
-    private async Task BasicEndpoint(HttpContext context)
+    private async Task OkEndpoint(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         return;
     }
 
+
+
     private async Task CustomEndpoint(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse(TestResponse);
+        await context.CreateOKcXMLResponse(TestResponse);
 
         return;
     }
@@ -56,7 +71,7 @@ public class GeneralEndpoints
         context.RequestContextLog();
 
         await Task.Delay(TimeSpan.FromMilliseconds(TestDelayMS));
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         return;
     }
@@ -67,7 +82,7 @@ public class GeneralEndpoints
         context.RequestContextLog();
         StatusCallbackReceivedEvent.Set();
 
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
         Console.WriteLine("Status callback received successfully!");
 
         var statusCallbackJSON = await context.Request.Body.ReadAsStringAsync();

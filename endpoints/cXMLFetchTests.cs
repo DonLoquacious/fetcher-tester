@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using Xunit;
 
-namespace fetcher_tester;
+namespace fetcher_tester.endpoints;
 
 /// <summary>
 /// These tests exercise the "action" callback url for cXML scenarios.
@@ -23,7 +23,7 @@ public class cXMLFetchTests
     public const string IPSSLLabel = "ip-ssl";
     public const string DelayedLabel = "delay";
 
-    public const string LabelPrefix = "cxml-fetch";
+    public const string LabelPrefix = "cxml/fetch";
 
     private readonly string? ProjectID;
     private readonly string? SpaceID;
@@ -101,7 +101,7 @@ public class cXMLFetchTests
     async Task HostnameTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(HostnameLabel), useIP: false, ssl: false, portNumber: 80))
         {
@@ -113,7 +113,7 @@ public class cXMLFetchTests
     async Task Port8080Test(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080Label), useIP: false, ssl: false, portNumber: 8080))
         {
@@ -125,7 +125,7 @@ public class cXMLFetchTests
     async Task Port8080IPTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080IPLabel), useIP: true, ssl: false, portNumber: 8080))
         {
@@ -137,7 +137,7 @@ public class cXMLFetchTests
     async Task Port8080SSLTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080SSLLabel), useIP: false, ssl: true, portNumber: 8080))
         {
@@ -149,7 +149,7 @@ public class cXMLFetchTests
     async Task Port8080IPSSLTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080IPSSLLabel), useIP: true, ssl: true, portNumber: 8080))
         {
@@ -161,7 +161,7 @@ public class cXMLFetchTests
     async Task IPTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(IPLabel), useIP: true, ssl: false, portNumber: 80))
         {
@@ -173,7 +173,7 @@ public class cXMLFetchTests
     async Task SSLTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(SSLLabel), useIP: false, ssl: true, portNumber: 443))
         {
@@ -185,7 +185,7 @@ public class cXMLFetchTests
     async Task IPSSLTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(IPSSLLabel), useIP: true, ssl: true, portNumber: 443))
         {
@@ -197,7 +197,7 @@ public class cXMLFetchTests
     async Task DelayedTest(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(DelayedLabel), useIP: false, ssl: false, portNumber: 80))
         {

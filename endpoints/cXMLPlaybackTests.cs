@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using Xunit;
 
-namespace fetcher_tester;
+namespace fetcher_tester.endpoints;
 
 /// <summary>
 /// These tests exercise the "play" url for cXML scenarios.
@@ -20,7 +20,7 @@ public class cXMLPlaybackTests
     public const string JpgLabel = "jpg";
     public const string PdfLabel = "pdf";
 
-    public const string LabelPrefix = "cxml-playback";
+    public const string LabelPrefix = "cxml/playback";
 
     private readonly string? ProjectID;
     private readonly string? SpaceID;
@@ -90,7 +90,7 @@ public class cXMLPlaybackTests
         GeneralEndpoints.StatusCallbackReceivedEvent.Reset();
 
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         var callbackStatusUrl = $"http://{TestHostname}/status_callback-endpoint";
 
@@ -113,7 +113,7 @@ public class cXMLPlaybackTests
         GeneralEndpoints.StatusCallbackReceivedEvent.Reset();
 
         context.RequestContextLog();
-        await context.CreateOKResponse();
+        await context.CreateOKcXMLResponse();
 
         var callbackStatusUrl = $"http://{TestHostname}/status_callback-endpoint";
 
@@ -134,7 +134,7 @@ public class cXMLPlaybackTests
     {
         Assert.NotNull(TestHostname);
         context.RequestContextLog();
-        await context.CreatePlayMediaFileResponse(TestHostname, MediaEndpoints.AviLabel, null);
+        await context.CreatePlayMediaFilecXMLResponse(TestHostname, MediaEndpoints.AviLabel, null);
     }
 
     async Task DelayedMp3TestEndpoint(HttpContext context)
@@ -142,20 +142,20 @@ public class cXMLPlaybackTests
         Assert.NotNull(TestHostname);
         context.RequestContextLog();
         await Task.Delay(TimeSpan.FromSeconds(4));
-        await context.CreatePlayMediaFileResponse(TestHostname, MediaEndpoints.DelayedMp3Label, null);
+        await context.CreatePlayMediaFilecXMLResponse(TestHostname, MediaEndpoints.DelayedMp3Label, null);
     }
 
     async Task Mp3TestResponseEndpoint(HttpContext context)
     {
         Assert.NotNull(TestHostname);
         context.RequestContextLog();
-        await context.CreatePlayMediaFileResponse(TestHostname, MediaEndpoints.Mp3Label, null);
+        await context.CreatePlayMediaFilecXMLResponse(TestHostname, MediaEndpoints.Mp3Label, null);
     }
 
     async Task TwilioTestEndpoint(HttpContext context)
     {
         context.RequestContextLog();
-        await context.CreateTwilioPlayMediaFileResponse();
+        await context.CreateTwilioPlayMediaFilecXMLResponse();
     }
 
     // Create a new call with SignalWire, to begin a test

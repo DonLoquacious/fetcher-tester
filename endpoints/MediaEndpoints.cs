@@ -1,4 +1,4 @@
-﻿namespace fetcher_tester;
+﻿namespace fetcher_tester.endpoints;
 
 /// <summary>
 /// Endpoints for serving various media types.
@@ -37,18 +37,23 @@ public class MediaEndpoints
     public Dictionary<string, RequestDelegate> GetEndpoints()
     {
         return new() {
-            { $"{LabelPrefix}/{AviLabel}", AviFilehost },
-            { $"{LabelPrefix}/{PdfLabel}", PdfFilehost },
-            { $"{LabelPrefix}/{TiffLabel}", TiffFilehost },
-            { $"{LabelPrefix}/{Mp3Label}", Mp3Filehost },
-            { $"{LabelPrefix}/{WavLabel}", WavFilehost },
-            { $"{LabelPrefix}/{Mp4Label}", Mp4Filehost },
-            { $"{LabelPrefix}/{JpgLabel}", JpgFilehost },
-            { $"{LabelPrefix}/{PngLabel}", PngFilehost },
-            { $"{LabelPrefix}/{OggLabel}", OggFilehost },
-            { $"{LabelPrefix}/{MovLabel}", MovFilehost },
-            { $"{LabelPrefix}/{DelayedMp3Label}", DelayedMp3Filehost}
+            { GenerateTestPath(AviLabel), AviFilehost },
+            { GenerateTestPath(PdfLabel), PdfFilehost },
+            { GenerateTestPath(TiffLabel), TiffFilehost },
+            { GenerateTestPath(Mp3Label), Mp3Filehost },
+            { GenerateTestPath(WavLabel), WavFilehost },
+            { GenerateTestPath(Mp4Label), Mp4Filehost },
+            { GenerateTestPath(JpgLabel), JpgFilehost },
+            { GenerateTestPath(PngLabel), PngFilehost },
+            { GenerateTestPath(OggLabel), OggFilehost },
+            { GenerateTestPath(MovLabel), MovFilehost },
+            { GenerateTestPath(DelayedMp3Label), DelayedMp3Filehost}
         };
+    }
+
+    private static string GenerateTestPath(string label)
+    {
+        return $"{LabelPrefix}/{label}";
     }
 
     async Task DelayedMp3Filehost(HttpContext context)
