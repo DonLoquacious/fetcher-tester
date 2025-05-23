@@ -66,11 +66,11 @@ AppConfig.SetConfiguration(builder.Configuration);
 string? specific_test = builder.Configuration["test_to_run"];
 string? relayContext = builder.Configuration["relay_context"];
 
-Dictionary<string, (RequestDelegate?, RequestDelegate)>? testLookup = null;
+Dictionary<string, RequestDelegate>? testLookup = null;
 MapEndpoints(app);
 
 Assert.NotNull(testLookup);
-CancellationTokenSource endingToken = new CancellationTokenSource();
+CancellationTokenSource endingToken = new();
 
 if (!string.IsNullOrWhiteSpace(relayContext))
 {
@@ -95,29 +95,30 @@ void MapEndpoints(WebApplication app)
 {
     app.Map("/run-tests", RunAllTests);
 
-    var actionTests = new ActionTests();
-    actionTests.ValidationConfiguration();
+    var fetchTests = new cXMLFetchTests();
+    fetchTests.ValidateConfiguration();
+    testLookup = fetchTests.GetTests();
 
-    var playbackTests = new PlayTests();
-    playbackTests.ValidationConfiguration();
-
-    testLookup = new Dictionary<string, (RequestDelegate?, RequestDelegate)>() { { "basic", new(null, BasicEndpoint) } };
-    testLookup = testLookup.Concat(actionTests.GenerateTestLookup()).ToDictionary();
-    testLookup = testLookup.Concat(playbackTests.GenerateTestLookup()).ToDictionary();
+    var playbackTests = new cXMLPlaybackTests();
+    playbackTests.ValidateConfiguration();
+    testLookup = testLookup.Concat(playbackTests.GetTests()).ToDictionary();
 
     foreach (var kvp in testLookup)
     {
-        if (kvp.Value.Item1 != null)
-        {
-            Console.WriteLine($"Adding test endpoint for: {kvp.Key.TestNameFromLabel()}");
-            app.Map($"/run-test/{kvp.Key.TestNameFromLabel()}", kvp.Value.Item1);
-        }
+        Console.WriteLine($"Adding test for: {kvp.Key}");
+        app.Map($"/tests/{kvp.Key}", kvp.Value);
     }
 
-    foreach (var kvp in testLookup)
+    Dictionary<string, RequestDelegate>? endpointLookup = null;
+    var generalEndpoints = new GeneralEndpoints();
+    endpointLookup = generalEndpoints.GetEndpoints();
+    endpointLookup = endpointLookup.Concat(fetchTests.GetEndpoints()).ToDictionary();
+    endpointLookup = endpointLookup.Concat(playbackTests.GetEndpoints()).ToDictionary();
+
+    foreach (var kvp in endpointLookup)
     {
-        Console.WriteLine($"Adding endpoint for: {kvp.Key.TestEndpointFromLabel()}");
-        app.Map($"/{kvp.Key.TestEndpointFromLabel()}", kvp.Value.Item2);
+        Console.WriteLine($"Adding endpoint for: {kvp.Key}");
+        app.Map($"/endpoints/{kvp.Key}", kvp.Value);
     }
 }
 
@@ -134,32 +135,20 @@ async Task RunAllTests(HttpContext context)
 
     if (!string.IsNullOrEmpty(specific_test))
     {
-        if (!testLookup.TryGetValue(specific_test, out var specific_kvp) || specific_kvp.Item1 == null)
+        if (!testLookup.TryGetValue(specific_test, out var specific_kvp))
         {
             Console.WriteLine($"Error: Could not locate specific test {specific_test} to run.");
             return;
         }
 
-        await specific_kvp.Item1.Invoke(context);
+        await specific_kvp.Invoke(context);
         Console.WriteLine($"Test {specific_test} has completed successfully.");
     }
 
     foreach (var kvp in testLookup)
     {
-        if (kvp.Value.Item1 == null)
-            continue;
-
-        await kvp.Value.Item1.Invoke(context);
-        if (!context.ValidateTestResults(kvp.Value.Item1.Method.Name))
+        await kvp.Value.Invoke(context);
+        if (!context.ValidateTestResults(kvp.Value.Method.Name))
             return;
     }
-}
-
-async Task BasicEndpoint(HttpContext context)
-{
-    Assert.NotNull(context);
-    await Task.CompletedTask;
-
-    context.RequestContextLog();
-    context.Response.StatusCode = 200;
 }

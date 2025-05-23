@@ -101,10 +101,4 @@ http://com.twilio.sounds.music.s3.amazonaws.com/index.xml
 
         return bodyAsString;
     }
-
-    public static string TestNameFromLabel(this string label)
-        => label + TestNameSuffix;
-
-    public static string TestEndpointFromLabel(this string label)
-        => label + TestEndpointSuffix;
 }

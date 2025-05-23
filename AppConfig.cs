@@ -21,6 +21,11 @@
             return Configuration?[key];
         }
 
+        public static string? GetConfigValue(string key, string? @default = null)
+        {
+            return Configuration?[key] ?? @default;
+        }
+
         public static int GetConfigValue(string key, int @default = 0)
         {
             if (int.TryParse(Configuration?[key], out int p))

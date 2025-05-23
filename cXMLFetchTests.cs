@@ -11,31 +11,30 @@ namespace fetcher_tester;
 /// Using a dummy SignalWire-associate "to" number (just set up to wait for a minute, then hang up),
 /// we can bypass needing an actual client to be connected and receiving these new calls.
 /// </summary>
-public class ActionTests
+public class cXMLFetchTests
 {
-    const string HostnameTestLabel = "hostname";
-    const string Port8080TestLabel = "port-8080";
-    const string Port8080IPTestLabel = "port-8080-ip";
-    const string Port8080SSLTestLabel = "port-8080-ssl";
-    const string Port8080IPSSLTestLabel = "port-8080-ip-ssl";
-    const string IPTestLabel = "ip";
-    const string SSLTestLabel = "ssl";
-    const string IPSSLTestLabel = "ip-ssl";
-    const string DelayedTestLabel = "delay";
+    public const string HostnameLabel = "hostname";
+    public const string Port8080Label = "port-8080";
+    public const string Port8080IPLabel = "port-8080-ip";
+    public const string Port8080SSLLabel = "port-8080-ssl";
+    public const string Port8080IPSSLLabel = "port-8080-ip-ssl";
+    public const string IPLabel = "ip";
+    public const string SSLLabel = "ssl";
+    public const string IPSSLLabel = "ip-ssl";
+    public const string DelayedLabel = "delay";
+
+    public const string LabelPrefix = "cxml-fetch";
 
     private readonly string? ProjectID;
     private readonly string? SpaceID;
     private readonly string? ApiToken;
     private readonly string? TestHostname;
     private readonly string? TestIp;
-    private readonly string? TestResponse;
-    private readonly int TestDelayMS;
     private readonly string? TestToNumber;
     private readonly string? TestFromNumber;
 
-    public ActionTests()
+    public cXMLFetchTests()
     {
-        TestDelayMS = AppConfig.GetConfigValue("test_delay_ms", 4000);
         TestToNumber = AppConfig.GetConfigValue("test_to_number");
         TestFromNumber = AppConfig.GetConfigValue("test_from_number");
         ProjectID = AppConfig.GetConfigValue("test_project_id");
@@ -43,29 +42,38 @@ public class ActionTests
         ApiToken = AppConfig.GetConfigValue("test_api_token");
         TestHostname = AppConfig.GetConfigValue("test_hostname");
         TestIp = AppConfig.GetConfigValue("test_ip");
-        TestResponse = AppConfig.GetConfigValue("test_response");
 
         Assert.NotNull(ProjectID);
         Assert.NotNull(SpaceID);
         Assert.NotNull(ApiToken);
     }
 
-    public Dictionary<string, (RequestDelegate?, RequestDelegate)> GenerateTestLookup()
+    public Dictionary<string, RequestDelegate> GetTests()
     {
         return new() {
-            { HostnameTestLabel, new(HostnameTest, BasicEndpoint) },
-            { Port8080TestLabel, new(Port8080Test, BasicEndpoint) },
-            { Port8080IPTestLabel, new(Port8080IPTest, BasicEndpoint) },
-            { Port8080SSLTestLabel, new(Port8080SSLTest, BasicEndpoint) },
-            { Port8080IPSSLTestLabel, new(Port8080IPSSLTest, BasicEndpoint) },
-            { IPTestLabel,  new(IPTest, BasicEndpoint) },
-            { SSLTestLabel,  new(SSLTest, BasicEndpoint) },
-            { IPSSLTestLabel,  new(IPSSLTest, BasicEndpoint) },
-            { DelayedTestLabel,  new(DelayedTest, DelayedEndpoint) }
+            { GenerateTestPath(HostnameLabel), HostnameTest },
+            { GenerateTestPath(Port8080Label), Port8080Test },
+            { GenerateTestPath(Port8080IPLabel), Port8080IPTest },
+            { GenerateTestPath(Port8080SSLLabel), Port8080SSLTest },
+            { GenerateTestPath(Port8080IPSSLLabel), Port8080IPSSLTest },
+            { GenerateTestPath(IPLabel), IPTest },
+            { GenerateTestPath(SSLLabel), SSLTest },
+            { GenerateTestPath(IPSSLLabel), IPSSLTest },
+            { GenerateTestPath(DelayedLabel), DelayedTest }
         };
     }
 
-    public bool ValidationConfiguration()
+    private static string GenerateTestPath(string label)
+    {
+        return $"{LabelPrefix}/{label}";
+    }
+
+    public Dictionary<string, RequestDelegate> GetEndpoints()
+    {
+        return [];
+    }
+
+    public bool ValidateConfiguration()
     {
         if (string.IsNullOrEmpty(TestHostname) || string.IsNullOrEmpty(TestIp))
         {
@@ -95,9 +103,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(HostnameTestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(HostnameLabel), useIP: false, ssl: false, portNumber: 80))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {HostnameTestLabel.TestEndpointFromLabel()} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {HostnameLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -107,9 +115,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080TestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 8080))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080Label), useIP: false, ssl: false, portNumber: 8080))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080TestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080Label} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -119,9 +127,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080IPTestLabel.TestEndpointFromLabel(), useIP: true, ssl: false, portNumber: 8080))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080IPLabel), useIP: true, ssl: false, portNumber: 8080))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080IPTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080IPLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -131,9 +139,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080SSLTestLabel.TestEndpointFromLabel(), useIP: false, ssl: true, portNumber: 8080))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080SSLLabel), useIP: false, ssl: true, portNumber: 8080))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080SSLTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080SSLLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -143,9 +151,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(Port8080IPSSLTestLabel.TestEndpointFromLabel(), useIP: true, ssl: true, portNumber: 8080))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(Port8080IPSSLLabel), useIP: true, ssl: true, portNumber: 8080))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080IPSSLTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {Port8080IPSSLLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -155,9 +163,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(IPTestLabel.TestEndpointFromLabel(), useIP: true, ssl: false, portNumber: 80))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(IPLabel), useIP: true, ssl: false, portNumber: 80))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {IPTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {IPLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -167,9 +175,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(SSLTestLabel.TestEndpointFromLabel(), useIP: false, ssl: true, portNumber: 443))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(SSLLabel), useIP: false, ssl: true, portNumber: 443))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {SSLTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {SSLLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -179,9 +187,9 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(IPSSLTestLabel.TestEndpointFromLabel(), useIP: true, ssl: true, portNumber: 443))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(IPSSLLabel), useIP: true, ssl: true, portNumber: 443))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {IPSSLTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {IPSSLLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
@@ -191,38 +199,14 @@ public class ActionTests
         context.RequestContextLog();
         await context.CreateOKResponse();
 
-        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(DelayedTestLabel.TestEndpointFromLabel(), useIP: false, ssl: false, portNumber: 80))
+        if (!await RequestToRestAPI_CreateNewCallWithTestParameters(GenerateTestPath(DelayedLabel), useIP: false, ssl: false, portNumber: 80))
         {
-            Console.WriteLine($"Error: Executing REST API to trigger fetch for {DelayedTestLabel} failed.");
+            Console.WriteLine($"Error: Executing REST API to trigger fetch for {DelayedLabel} failed.");
             await context.CreateServerErrorResponse();
         }
     }
 
-    /// <summary>
-    /// The most basic of HTTP endpoints.
-    /// Logs all context details, and then returns 200/OK right away.
-    /// </summary>
-    async Task BasicEndpoint(HttpContext context)
-    {
-        context.RequestContextLog();
-        await context.CreateOKResponse(TestResponse);
 
-        return;
-    }
-
-    /// <summary>
-    /// A delayed HTTP endpoint.
-    /// Will wait a configurable amount of time before returning 200/OK.
-    /// </summary>
-    async Task DelayedEndpoint(HttpContext context)
-    {
-        context.RequestContextLog();
-
-        await Task.Delay(TimeSpan.FromMilliseconds(TestDelayMS));
-        await context.CreateOKResponse(TestResponse);
-
-        return;
-    }
 
     /// <summary>
     /// Makes a request to a SignalWire REST API to create a new call.
@@ -235,7 +219,7 @@ public class ActionTests
     /// </summary>
     async Task<bool> RequestToRestAPI_CreateNewCallWithTestParameters(string testName, bool useIP, bool ssl = false, int portNumber = 80)
     {
-        var fetchUrl = $"{(ssl ? "https" : "http")}://{(useIP ? TestIp : TestHostname)}:{portNumber}/{testName}";
+        var fetchUrl = $"{(ssl ? "https" : "http")}://{(useIP ? TestIp : TestHostname)}:{portNumber}/tests/{testName}";
         var requestUrl = $"https://{(string.IsNullOrEmpty(SpaceID) ? "dev.swire.io" : SpaceID)}/api/laml/2010-04-01/Accounts/{ProjectID}/Calls";
 
         var clientHandler = new HttpClientHandler
